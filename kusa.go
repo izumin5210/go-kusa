@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
@@ -39,40 +40,42 @@ type RequestValue struct {
 }
 
 func main() {
-	user := getenvOrExit("GITHUB_USERS")
+	users := strings.Split(getenvOrExit("GITHUB_USERS"), ":")
 
-	attachments := []Attachment{}
+	for _, user := range users {
+		attachments := []Attachment{}
 
-	url := githubUrl(user)
-	doc, err := goquery.NewDocument(url)
+		url := githubUrl(user)
+		doc, err := goquery.NewDocument(url)
 
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-
-	count := contributionsOn(doc, today())
-	color := ""
-	icon := ""
-	text := ""
-
-	if count > 0 {
-		color = "good"
-		icon = getenvOrDefault("ICON_EMOJI", ":seedling:")
-		buf := make([]byte, 0)
-		for i := 0; i < count; i++ {
-			buf = append(buf, ":cherry_blossom:"...)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
 		}
-		text = string(buf)
-	} else {
-		color = "danger"
-		icon = getenvOrDefault("ICON_EMOJI_NO_CONTRIBUTION", ":japanese_goblin:")
-		text = getenvOrDefault("KUSA_MSG_NO_CONTRIBUTIONS", ":warning: There are no contributions today ! :warning:")
+
+		count := contributionsOn(doc, today())
+		color := ""
+		icon := ""
+		text := ""
+
+		if count > 0 {
+			color = "good"
+			icon = getenvOrDefault("ICON_EMOJI", ":seedling:")
+			buf := make([]byte, 0)
+			for i := 0; i < count; i++ {
+				buf = append(buf, ":cherry_blossom:"...)
+			}
+			text = string(buf)
+		} else {
+			color = "danger"
+			icon = getenvOrDefault("ICON_EMOJI_NO_CONTRIBUTION", ":japanese_goblin:")
+			text = getenvOrDefault("KUSA_MSG_NO_CONTRIBUTIONS", ":warning: There are no contributions today ! :warning:")
+		}
+
+		attachments = append(attachments, Attachment{Color: color, Title: user, TitleLink: url, Text: text})
+
+		httpPost(createValue(icon, attachments))
 	}
-
-	attachments = append(attachments, Attachment{Color: color, Title: user, TitleLink: url, Text: text})
-
-	httpPost(createValue(icon, attachments))
 }
 
 func getenvOrDefault(key string, defvalue string) string {
