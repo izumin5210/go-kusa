@@ -13,23 +13,66 @@ import (
 	"github.com/PuerkitoBio/goquery"
 )
 
+type Field struct {
+	Title string `json:"title"`
+	Value string `json:"value"`
+	Short bool `json:"short"`
+}
+
+type Attachment struct {
+	Color string `json:"color"`
+	AutherName string `json:"author_name"`
+	AutherLink string `json:"author_link"`
+	AutherIcon string `json:"author_icon"`
+	Title string `json:"title"`
+	TitleLink string `json:"title_link"`
+	Text string `json:"text"`
+	Fields []Field `json:"fields"`
+}
+
 type RequestValue struct {
 	Channel string `json:"channel"`
 	Username string `json:"username"`
 	IconEmoji string `json:"icon_emoji"`
 	Text string `json:"text"`
+	Attachments []Attachment `json:"attachments"`
 }
 
 func main() {
-	user := getenvOrExit("GITHUB_USER")
+	user := getenvOrExit("GITHUB_USERS")
 
-	doc, err := goquery.NewDocument(githubUrl(user))
+	attachments := []Attachment{}
+
+	url := githubUrl(user)
+	doc, err := goquery.NewDocument(url)
+
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
 
-	httpPost(contributionsOn(doc, today()))
+	count := contributionsOn(doc, today())
+	color := ""
+	icon := ""
+	text := ""
+
+	if count > 0 {
+		color = "good"
+		icon = getenvOrDefault("ICON_EMOJI", ":seedling:")
+		buf := make([]byte, 0)
+		for i := 0; i < count; i++ {
+			buf = append(buf, ":cherry_blossom:"...)
+		}
+		text = string(buf)
+	} else {
+		color = "danger"
+		icon = getenvOrDefault("ICON_EMOJI_NO_CONTRIBUTION", ":japanese_goblin:")
+		text = getenvOrDefault("KUSA_MSG_NO_CONTRIBUTIONS", ":warning: There are no contributions today ! :warning:")
+	}
+
+	attachments = append(attachments, Attachment{Color: color, Title: user, TitleLink: url, Text: text})
+
+	httpPost(createValue(icon, attachments))
 }
 
 func getenvOrDefault(key string, defvalue string) string {
@@ -68,8 +111,8 @@ func query(date string) string {
 	return fmt.Sprintf(".js-calendar-graph-svg .day[data-date='%s']", date)
 }
 
-func httpPost(cnt int) {
-	value, err := json.Marshal(createValues(cnt))
+func httpPost(req RequestValue) {
+	value, err := json.Marshal(req)
 
 	resp, err := http.Post(getenvOrExit("SLACK_WEBHOOK_URL"), "application/json", bytes.NewBuffer(value))
 
@@ -83,25 +126,8 @@ func httpPost(cnt int) {
 	defer resp.Body.Close()
 }
 
-func createValues(cnt int) RequestValue {
+func createValue(icon string, attachments []Attachment) RequestValue {
 	channel := getenvOrExit("SLACK_CHANNEL")
 	username := getenvOrDefault("SLACK_USERNAME", "kusabot")
-	icon := ""
-	text := ""
-	if cnt > 0 {
-		exists := false
-		icon = getenvOrDefault("ICON_EMOJI", ":seedling:")
-		text, exists = os.LookupEnv("KUSA_MSG_DEFAULT")
-		if !exists {
-			buf := make([]byte, 0)
-			for i := 0; i < cnt; i++ {
-				buf = append(buf, ":cherry_blossom:"...)
-			}
-			text = string(buf)
-		}
-	} else {
-		icon = getenvOrDefault("ICON_EMOJI_NO_CONTRIBUTION", ":japanese_goblin:")
-		text = getenvOrDefault("KUSA_MSG_NO_CONTRIBUTIONS", ":warning: There are no contributions today ! :warning:")
-	}
-	return RequestValue{Channel: channel, Username: username, IconEmoji: icon, Text: text}
+	return RequestValue{Channel: channel, Username: username, IconEmoji: icon, Attachments: attachments}
 }
