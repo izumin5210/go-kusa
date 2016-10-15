@@ -9,7 +9,6 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/PuerkitoBio/goquery"
 )
@@ -53,10 +52,11 @@ func main() {
 			os.Exit(1)
 		}
 
-		count := contributionsOn(doc, today())
+		count, streak, maxStreak := contributionsOn(doc)
 		color := ""
 		icon := ""
-		text := ""
+		text := fmt.Sprintf("%s's contributions", user)
+		fields := []Field{}
 
 		if count > 0 {
 			color = "good"
@@ -65,14 +65,18 @@ func main() {
 			for i := 0; i < count; i++ {
 				buf = append(buf, ":cherry_blossom:"...)
 			}
-			text = string(buf)
+			fields = append(fields, Field{Title: "Contributions", Value: string(buf), Short: false})
 		} else {
 			color = "danger"
 			icon = getenvOrDefault("ICON_EMOJI_NO_CONTRIBUTION", ":japanese_goblin:")
-			text = getenvOrDefault("KUSA_MSG_NO_CONTRIBUTIONS", ":warning: There are no contributions today ! :warning:")
+			value := getenvOrDefault("KUSA_MSG_NO_CONTRIBUTIONS", ":warning: There are no contributions today ! :warning:")
+			fields = append(fields, Field{Title: "Contributions", Value: value, Short: false})
 		}
 
-		attachments = append(attachments, Attachment{Color: color, Title: user, TitleLink: url, Text: text})
+		fields = append(fields, Field{Title: "Current streak", Value: strconv.Itoa(streak), Short: true})
+		fields = append(fields, Field{Title: "Longest streak", Value: strconv.Itoa(maxStreak), Short: true})
+
+		attachments = append(attachments, Attachment{Color: color, Text: text, Fields: fields})
 
 		httpPost(createValue(icon, attachments))
 	}
@@ -100,18 +104,23 @@ func githubUrl(user string) string {
 	return fmt.Sprintf("https://github.com/%s", user)
 }
 
-func today() string {
-	return time.Now().Format("2006-01-02")
-}
-
-func contributionsOn(doc *goquery.Document, date string) int {
-	str, _ := doc.Find(query(date)).Attr("data-count")
-	cnt, _ := strconv.Atoi(str)
-	return cnt
-}
-
-func query(date string) string {
-	return fmt.Sprintf(".js-calendar-graph-svg .day[data-date='%s']", date)
+func contributionsOn(doc *goquery.Document) (int, int, int) {
+	cnt := 0
+	streak := 0
+	maxStreak := 0
+	doc.Find(".js-calendar-graph-svg .day").Each(func(i int, s *goquery.Selection) {
+		str, _ := s.Attr("data-count")
+		cnt, _ = strconv.Atoi(str)
+		if cnt > 0 {
+			streak += 1
+		} else {
+			streak = 0
+		}
+		if streak > maxStreak {
+			maxStreak = streak
+		}
+	})
+	return cnt, streak, maxStreak
 }
 
 func httpPost(req RequestValue) {
