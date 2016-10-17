@@ -52,7 +52,7 @@ func main() {
 			os.Exit(1)
 		}
 
-		count, streak, maxStreak := contributionsOn(doc)
+		count, streak, maxStreak, totalCnt, weekCnt := contributionsOn(doc)
 		color := ""
 		icon := ""
 		text := fmt.Sprintf("%s's contributions", user)
@@ -75,6 +75,8 @@ func main() {
 
 		fields = append(fields, Field{Title: "Current streak", Value: strconv.Itoa(streak), Short: true})
 		fields = append(fields, Field{Title: "Longest streak", Value: strconv.Itoa(maxStreak), Short: true})
+		fields = append(fields, Field{Title: "In the last year", Value: strconv.Itoa(totalCnt), Short: true})
+		fields = append(fields, Field{Title: "In the last week", Value: strconv.Itoa(weekCnt), Short: true})
 
 		attachments = append(attachments, Attachment{Color: color, Text: text, Fields: fields})
 
@@ -104,13 +106,20 @@ func githubUrl(user string) string {
 	return fmt.Sprintf("https://github.com/%s", user)
 }
 
-func contributionsOn(doc *goquery.Document) (int, int, int) {
+func contributionsOn(doc *goquery.Document) (int, int, int, int, int) {
 	cnt := 0
 	streak := 0
 	maxStreak := 0
+	week := []int{}
+	totalCnt := 0
 	doc.Find(".js-calendar-graph-svg .day").Each(func(i int, s *goquery.Selection) {
 		str, _ := s.Attr("data-count")
 		cnt, _ = strconv.Atoi(str)
+		totalCnt += cnt
+		week = append(week, cnt)
+		if len(week) > 7 {
+			week = week[1:]
+		}
 		if cnt > 0 {
 			streak += 1
 		} else {
@@ -120,7 +129,11 @@ func contributionsOn(doc *goquery.Document) (int, int, int) {
 			maxStreak = streak
 		}
 	})
-	return cnt, streak, maxStreak
+	weekCnt := 0
+	for _, c := range week {
+		weekCnt += c
+	}
+	return cnt, streak, maxStreak, totalCnt, weekCnt
 }
 
 func httpPost(req RequestValue) {
