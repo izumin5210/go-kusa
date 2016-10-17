@@ -73,10 +73,10 @@ func main() {
 			fields = append(fields, Field{Title: "Contributions", Value: value, Short: false})
 		}
 
-		fields = append(fields, Field{Title: "Current streak", Value: strconv.Itoa(streak), Short: true})
-		fields = append(fields, Field{Title: "Longest streak", Value: strconv.Itoa(maxStreak), Short: true})
-		fields = append(fields, Field{Title: "In the last year", Value: strconv.Itoa(totalCnt), Short: true})
-		fields = append(fields, Field{Title: "In the last week", Value: strconv.Itoa(weekCnt), Short: true})
+		fields = append(fields, Field{Title: "Current streak", Value: fmt.Sprintf("%d days", streak), Short: true})
+		fields = append(fields, Field{Title: "Longest streak", Value: fmt.Sprintf("%d days", maxStreak), Short: true})
+		fields = append(fields, Field{Title: "In the last year", Value: fmt.Sprintf("%d contributions", totalCnt), Short: true})
+		fields = append(fields, Field{Title: "In the last week", Value: fmt.Sprintf("%d contributions", weekCnt), Short: true})
 
 		attachments = append(attachments, Attachment{Color: color, Text: text, Fields: fields})
 
