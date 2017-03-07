@@ -1,7 +1,6 @@
 all: kusa
 	docker build \
 		--tag izumin5210/kusa \
-		--build-arg run_at="00\t22\t*\t*\t*" \
 		.
 
 kusa:
