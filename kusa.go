@@ -16,25 +16,25 @@ import (
 type Field struct {
 	Title string `json:"title"`
 	Value string `json:"value"`
-	Short bool `json:"short"`
+	Short bool   `json:"short"`
 }
 
 type Attachment struct {
-	Color string `json:"color"`
-	AutherName string `json:"author_name"`
-	AutherLink string `json:"author_link"`
-	AutherIcon string `json:"author_icon"`
-	Title string `json:"title"`
-	TitleLink string `json:"title_link"`
-	Text string `json:"text"`
-	Fields []Field `json:"fields"`
+	Color      string  `json:"color"`
+	AutherName string  `json:"author_name"`
+	AutherLink string  `json:"author_link"`
+	AutherIcon string  `json:"author_icon"`
+	Title      string  `json:"title"`
+	TitleLink  string  `json:"title_link"`
+	Text       string  `json:"text"`
+	Fields     []Field `json:"fields"`
 }
 
 type RequestValue struct {
-	Channel string `json:"channel"`
-	Username string `json:"username"`
-	IconEmoji string `json:"icon_emoji"`
-	Text string `json:"text"`
+	Channel     string       `json:"channel"`
+	Username    string       `json:"username"`
+	IconEmoji   string       `json:"icon_emoji"`
+	Text        string       `json:"text"`
 	Attachments []Attachment `json:"attachments"`
 }
 
@@ -100,7 +100,7 @@ func main() {
 
 func getenvOrDefault(key string, defvalue string) string {
 	value, exists := os.LookupEnv(key)
-	if (exists) {
+	if exists {
 		return value
 	} else {
 		return defvalue
@@ -109,7 +109,7 @@ func getenvOrDefault(key string, defvalue string) string {
 
 func getenvOrExit(key string) string {
 	value, exists := os.LookupEnv(key)
-	if (!exists) {
+	if !exists {
 		fmt.Println(fmt.Sprintf("%s is required.", key))
 		os.Exit(1)
 	}
