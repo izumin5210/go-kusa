@@ -44,22 +44,8 @@ func main() {
 	for _, user := range users {
 		attachments := []Attachment{}
 
-		req, err := http.NewRequest("GET", githubUrl(user), nil)
-
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
-
-		req.Header.Add("Time-Zone", getenvOrExit("TZDATA"))
-		resp, err := http.DefaultClient.Do(req)
-
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
-
-		doc, err := goquery.NewDocumentFromResponse(resp)
+		url := githubUrl(user)
+		doc, err := goquery.NewDocument(url)
 
 		if err != nil {
 			fmt.Println(err)
