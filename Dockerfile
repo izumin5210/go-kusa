@@ -19,7 +19,9 @@ RUN apk add --update \
 
 ENV SSL_CERT_FILE /etc/ssl/certs/ca-certificates.crt
 
-COPY kusa .
+# FIXME: Should extract kusa version as ENV
+ADD ./pkg/go-kusa_2.3.0_linux_386.tar.gz .
+RUN mv pkg/go-kusa_2.3.0_linux_386/kusa .
 COPY start.sh .
 
 CMD ["./start.sh"]
