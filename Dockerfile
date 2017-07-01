@@ -1,27 +1,25 @@
-FROM alpine:3.4
+# Build stage
+# --------------------------------
+FROM golang:1.8-alpine AS builder
 
 MAINTAINER izumin5210 <masayuki@izumin.info>
 
-ENV ENTRYKIT_VERSION 0.4.0
+RUN apk --update --virtual build-deps add \
+  build-base \
+  git
 
-WORKDIR /
-ENV WORKDIR /app
-RUN mkdir $WORKDIR
-WORKDIR $WORKDIR
+WORKDIR /app
 
-RUN apk add --update \
-        ca-certificates \
-        tzdata \
-    && apk add --update --repository http://dl-3.alpinelinux.org/alpine/edge/testing/ \
-        entrykit \
-    && update-ca-certificates \
-    && rm -rf /var/cache/apk/*
+ADD . .
+RUN make build
 
-ENV SSL_CERT_FILE /etc/ssl/certs/ca-certificates.crt
+RUN apk del build-deps \
+  && rm -rf /var/cache/apk/*
 
-# FIXME: Should extract kusa version as ENV
-ADD ./pkg/go-kusa_2.4.0_linux_386.tar.gz .
-RUN mv pkg/go-kusa_2.4.0_linux_386/kusa .
-COPY start.sh .
+# Runtime stage
+# --------------------------------
+FROM alpine
 
-CMD ["./start.sh"]
+COPY --from=builder /app/bin/kusa /usr/local/bin/kusa
+
+ENTRYPOINT ["/usr/local/bin/kusa"]
