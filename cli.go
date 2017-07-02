@@ -59,24 +59,6 @@ func DebugF(format string, args ...interface{}) {
 	}
 }
 
-func getenvOrDefault(key string, defvalue string) string {
-	value, exists := os.LookupEnv(key)
-	if exists {
-		return value
-	} else {
-		return defvalue
-	}
-}
-
-func getenvOrExit(key string, code int) string {
-	value, exists := os.LookupEnv(key)
-	if !exists {
-		fmt.Println(fmt.Sprintf("Fail to look up %s.", key))
-		os.Exit(code)
-	}
-	return value
-}
-
 type strslice []string
 
 func (s *strslice) String() string {
