@@ -20,6 +20,8 @@ RUN apk del build-deps \
 # --------------------------------
 FROM alpine:3.6
 
+RUN apk --no-cache add ca-certificates
+
 COPY --from=builder /app/bin/kusa /usr/local/bin/kusa
 
 ENTRYPOINT ["/usr/local/bin/kusa"]
