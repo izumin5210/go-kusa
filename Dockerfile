@@ -18,7 +18,7 @@ RUN apk del build-deps \
 
 # Runtime stage
 # --------------------------------
-FROM alpine
+FROM alpine:3.6
 
 COPY --from=builder /app/bin/kusa /usr/local/bin/kusa
 
