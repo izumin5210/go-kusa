@@ -6,7 +6,6 @@ import (
 	"io"
 	"log"
 	"os"
-	"strings"
 
 	"github.com/mitchellh/colorstring"
 )
@@ -60,32 +59,49 @@ func DebugF(format string, args ...interface{}) {
 	}
 }
 
-func getenvOrDefault(key string, defvalue string) string {
-	value, exists := os.LookupEnv(key)
-	if exists {
-		return value
-	} else {
-		return defvalue
-	}
+type strslice []string
+
+func (s *strslice) String() string {
+	return fmt.Sprintf("%v", *s)
 }
 
-func getenvOrExit(key string, code int) string {
-	value, exists := os.LookupEnv(key)
-	if !exists {
-		fmt.Println(fmt.Sprintf("Fail to look up %s.", key))
-		os.Exit(code)
-	}
-	return value
+func (s *strslice) Set(v string) error {
+	*s = append(*s, v)
+	return nil
 }
 
 // Run invokes the CLI with the given arguments.
 func (cli *CLI) Run(args []string) int {
 	var (
 		version bool
+
+		users             strslice
+		channel           string
+		webhookURL        string
+		name              string
+		iconEmojiPositive string
+		iconEmojiNegative string
+		msgNegative       string
 	)
 
 	flags := flag.NewFlagSet(Name, flag.ExitOnError)
 	flags.SetOutput(cli.errStream)
+
+	flags.Var(&users, "user", "GitHub user names")
+	flags.Var(&users, "u", "GitHub user names")
+
+	flags.StringVar(&channel, "channel", "", "Target Slack channel")
+	flags.StringVar(&channel, "c", "", "Target Slack channel")
+
+	flags.StringVar(&webhookURL, "webhook-url", "", "Slack incoming Webhook URL")
+	flags.StringVar(&webhookURL, "w", "", "Slack incoming Webhook URL")
+
+	flags.StringVar(&name, "name", "kusabot", "Bot name")
+	flags.StringVar(&name, "n", "kusabot", "Bot name")
+
+	flags.StringVar(&iconEmojiPositive, "icon-emoji-positive", ":seedling:", "")
+	flags.StringVar(&iconEmojiNegative, "icon-emoji-negative", ":japanese_goblin:", "")
+	flags.StringVar(&msgNegative, "message-negative", ":warning: There are no contributions today ! :warning:", "")
 
 	flags.BoolVar(&version, "version", false, "")
 	flags.BoolVar(&version, "v", false, "")
@@ -99,8 +115,21 @@ func (cli *CLI) Run(args []string) int {
 		return ExitCodeOK
 	}
 
+	if len(users) < 1 {
+		PrintRedF(cli.errStream, "You must set 1 GitHub user at least with `--user` option.")
+		os.Exit(ExitCodeGitHubUsersDoNotExistError)
+	}
+
+	if len(webhookURL) < 1 {
+		fmt.Print("Incoming Webhook URL: ")
+		fmt.Scan(&webhookURL)
+		if len(webhookURL) < 1 {
+			PrintRedF(cli.errStream, "You must set slack webhook url with `--url` option or tty.")
+			os.Exit(ExitCodeSlackWebhookUrlDoNotExistError)
+		}
+	}
+
 	kusa := &Kusa{}
-	users := strings.Split(getenvOrExit("GITHUB_USERS", ExitCodeGitHubUsersDoNotExistError), ":")
 	statuses, err := kusa.Fetch(users)
 
 	if err != nil {
@@ -109,12 +138,12 @@ func (cli *CLI) Run(args []string) int {
 	}
 
 	slack := &Slack{
-		WebhookUrl:               getenvOrExit("SLACK_WEBHOOK_URL", ExitCodeSlackWebhookUrlDoNotExistError),
-		Channel:                  getenvOrExit("SLACK_CHANNEL", ExitCodeSlackChannelDoNotExistError),
-		User:                     getenvOrDefault("SLACK_USERNAME", "kusabot"),
-		IconEmoji:                getenvOrDefault("ICON_EMOJI", ":seedling:"),
-		IconEmojiNoContributions: getenvOrDefault("ICON_EMOJI_NO_CONTRIBUTIONS", ":japanese_goblin:"),
-		MsgNoContributions:       getenvOrDefault("MSG_NO_CONTRIBUTIONS", ":warning: There are no contributions today ! :warning:"),
+		WebhookUrl:               webhookURL,
+		Channel:                  channel,
+		User:                     name,
+		IconEmoji:                iconEmojiPositive,
+		IconEmojiNoContributions: iconEmojiNegative,
+		MsgNoContributions:       msgNegative,
 	}
 
 	for _, status := range statuses {
