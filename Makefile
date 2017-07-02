@@ -56,7 +56,7 @@ package: clean deps
 	done
 
 .PHONY: build-image
-build-image: package
+build-image: clean
 	docker build \
 		--tag izumin5210/kusa \
 		.
