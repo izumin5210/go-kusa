@@ -1,5 +1,5 @@
 NAME := kusa
-VERSION := 2.4.0
+VERSION := 3.0.0
 REVISION := $(shell git describe --always)
 LDFLAGS := -ldflags="-s -w -X \"main.Name=$(NAME)\" -X \"main.Version=$(VERSION)\" -X \"main.Revision=$(REVISION)\" -extldflags \"-static\""
 
